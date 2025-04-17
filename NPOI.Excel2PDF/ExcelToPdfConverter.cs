@@ -221,8 +221,11 @@ namespace NPOI.Excel2PDF
                 {
                     for (int colIdx = 0; colIdx <= maxColumnCount; colIdx++)
                     {
-                        var width = (float)sheet.GetColumnWidthInPixels(colIdx);
-                        _.RelativeColumn(width);
+                        if (!sheet.IsColumnHidden(colIdx))
+                        {
+                            var width = (float)sheet.GetColumnWidthInPixels(colIdx);
+                            _.RelativeColumn(width);
+                        }
                     }
                 });
 
@@ -230,37 +233,40 @@ namespace NPOI.Excel2PDF
                 for (int rowIdx = sheet.FirstRowNum; rowIdx <= sheet.LastRowNum; rowIdx++)
                 {
                     IRow row = sheet.GetRow(rowIdx);
-                    if (row != null)
+                    if (row != null && row.Hidden != true)
                     {
                         for (int colIdx = 0; colIdx <= maxColumnCount; colIdx++)
                         {
-                            ICell excelCell = row.GetCell(colIdx);
-                            if (excelCell != null)
+                            if (!sheet.IsColumnHidden(colIdx))
                             {
-                                uint currentRow = (uint)(rowIdx + 1);
-                                uint currentCol = (uint)(colIdx + 1);
-
-                                if (IsMergedCell(sheet, rowIdx, colIdx))
+                                var excelCell = row.GetCell(colIdx);
+                                if (excelCell != null)
                                 {
-                                    CellRangeAddress region = GetMergedRegion(sheet, rowIdx, colIdx);
-                                    if (region.FirstRow == rowIdx && region.FirstColumn == colIdx)
+                                    uint currentRow = (uint)(rowIdx + 1);
+                                    uint currentCol = (uint)(colIdx + 1);
+
+                                    if (IsMergedCell(sheet, rowIdx, colIdx))
                                     {
-                                        int columnCount = region.LastColumn - region.FirstColumn + 1;
+                                        var region = GetMergedRegion(sheet, rowIdx, colIdx);
+                                        if (region.FirstRow == rowIdx && region.FirstColumn == colIdx)
+                                        {
+                                            int columnCount = region.LastColumn - region.FirstColumn + 1;
 
-                                        table.Cell()
-                                         .Row(currentRow)
-                                         .Column(currentCol)
-                                         .ColumnSpan((uint)columnCount)
-                                         .RowSpan((uint)(region.LastRow - region.FirstRow + 1))
-                                         .Element(ProcessCell(workbook, excelCell));
+                                            table.Cell()
+                                             .Row(currentRow)
+                                             .Column(currentCol)
+                                             .ColumnSpan((uint)columnCount)
+                                             .RowSpan((uint)(region.LastRow - region.FirstRow + 1))
+                                             .Element(ProcessCell(workbook, excelCell));
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    table.Cell()
-                                        .Row(currentRow)
-                                        .Column(currentCol)
-                                        .Element(ProcessCell(workbook, excelCell));
+                                    else
+                                    {
+                                        table.Cell()
+                                            .Row(currentRow)
+                                            .Column(currentCol)
+                                            .Element(ProcessCell(workbook, excelCell));
+                                    }
                                 }
                             }
                         }
