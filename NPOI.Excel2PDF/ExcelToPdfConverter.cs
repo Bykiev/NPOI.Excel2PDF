@@ -93,6 +93,18 @@ namespace NPOI.Excel2PDF
                 subject = metadata.CoreProperties.Subject;
                 keywords = metadata.CoreProperties.Keywords;
             }
+            else
+            {
+                var metadata = ((HSSFWorkbook)workbook).SummaryInformation;
+
+                if (metadata != null)
+                {
+                    author = metadata.Author;
+                    title = metadata.Title;
+                    subject = metadata.Subject;
+                    keywords = metadata.Keywords;
+                }
+            }
 
             return Document.Create(container =>
             {
@@ -282,7 +294,7 @@ namespace NPOI.Excel2PDF
                     {
                         if (angle >= 0 && angle <= 90)
                             angle = 360 - angle;
-                        else 
+                        else
                             angle -= 90;
                     }
 
