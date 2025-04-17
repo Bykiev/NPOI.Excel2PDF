@@ -49,11 +49,7 @@ namespace NPOI.Excel2PDF
         public static List<ExportResult> Convert(IWorkbook workbook, ExportOptions options)
         {
             var files = new List<ExportResult>();
-
-            if (workbook is XSSFWorkbook)
-                evaluator = workbook.GetCreationHelper().CreateFormulaEvaluator();
-            else
-                evaluator = workbook.GetCreationHelper().CreateFormulaEvaluator();
+            evaluator = workbook.GetCreationHelper().CreateFormulaEvaluator();
 
             if (options.SeparateFilesPerSheet)
             {
@@ -266,6 +262,8 @@ namespace NPOI.Excel2PDF
             return container =>
             {
                 float columnWidth = (float)SheetUtil.GetColumnWidth(cell.Sheet, cell.ColumnIndex, true);
+                if (columnWidth == -1)
+                    columnWidth = 8;
 
                 ICellStyle style = cell.CellStyle;
 
@@ -293,7 +291,7 @@ namespace NPOI.Excel2PDF
                     // TODO: we should call TranslateY(val) here to move content down after rotation
                 }
 
-                container = container.MinHeight(cell.Row.HeightInPoints, Unit.Point);
+                container = container.MinHeight(cell.Row.HeightInPoints);
                 container = container.MinWidth(columnWidth);
 
                 //switch (style.VerticalAlignment)
