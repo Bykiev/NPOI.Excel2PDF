@@ -16,7 +16,7 @@ namespace TestApp
                 CompressPdf = true
             };
 
-            var res = ExcelToPdfConverter.Convert("input_etalon1.xlsx", options);
+            var res = ExcelToPdfConverter.Convert("rotate.xls", options);
 
             foreach (var item in res)
                 File.WriteAllBytes($"output{item.SheetName}.pdf", item.Data);

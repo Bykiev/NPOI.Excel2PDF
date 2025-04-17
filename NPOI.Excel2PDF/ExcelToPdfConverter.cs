@@ -1,4 +1,5 @@
 ﻿using NPOI.HSSF.UserModel;
+using NPOI.HSSF.Util;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
@@ -25,16 +26,24 @@ namespace NPOI.Excel2PDF
 
         public static List<ExportResult> Convert(string inputPath, ExportOptions options)
         {
-            IWorkbook workbook;
-            using (FileStream file = new FileStream(inputPath, FileMode.Open, FileAccess.Read))
-            {
-                if (Path.GetExtension(inputPath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-                    workbook = new XSSFWorkbook(file);
-                else
-                    workbook = new HSSFWorkbook(file);
-            }
+            IWorkbook workbook = null;
 
-            return Convert(workbook, options);
+            try
+            {
+                using (FileStream file = new FileStream(inputPath, FileMode.Open, FileAccess.Read))
+                {
+                    if (Path.GetExtension(inputPath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+                        workbook = new XSSFWorkbook(file);
+                    else
+                        workbook = new HSSFWorkbook(file);
+                }
+
+                return Convert(workbook, options);
+            }
+            finally
+            {
+                workbook?.Dispose();
+            }
         }
 
         public static List<ExportResult> Convert(IWorkbook workbook, ExportOptions options)
@@ -256,11 +265,36 @@ namespace NPOI.Excel2PDF
         {
             return container =>
             {
-                container = container.MinHeight(cell.Row.HeightInPoints, Unit.Point);
                 float columnWidth = (float)SheetUtil.GetColumnWidth(cell.Sheet, cell.ColumnIndex, true);
-                container = container.MinWidth(columnWidth);
 
                 ICellStyle style = cell.CellStyle;
+
+                if (style.Rotation != 0)
+                {
+                    float angle = style.Rotation;
+
+                    if (workbook is HSSFWorkbook)
+                    {
+                        if (angle >= 0 && angle <= 90)
+                            angle = 360 - angle;
+                        else
+                            angle = -angle;
+                    }
+                    else
+                    {
+                        if (angle >= 0 && angle <= 90)
+                            angle = 360 - angle;
+                        else 
+                            angle -= 90;
+                    }
+
+                    container = container.Rotate(angle);
+
+                    // TODO: we should call TranslateY(val) here to move content down after rotation
+                }
+
+                container = container.MinHeight(cell.Row.HeightInPoints, Unit.Point);
+                container = container.MinWidth(columnWidth);
 
                 //switch (style.VerticalAlignment)
                 //{
@@ -368,8 +402,15 @@ namespace NPOI.Excel2PDF
 
         private static Color GetBackgroundColor(ICellStyle style)
         {
+
             if (style.FillForegroundColorColor != null)
             {
+                if (style.FillForegroundColorColor is HSSFColor)
+                {
+                    if (style.FillForegroundColor == HSSFColor.Automatic.Index)
+                        return Colors.White;
+                }
+
                 var color = style.FillForegroundColorColor.RGB;
                 if (color != null)
                     return Color.FromRGB(color[0], color[1], color[2]);
@@ -392,7 +433,7 @@ namespace NPOI.Excel2PDF
             return "#000000";
         }
 
-        private static string GetHssfFontColor(IFont font, HSSFWorkbook workbook)
+        private static Color GetHssfFontColor(IFont font, HSSFWorkbook workbook)
         {
             if (font is HSSFFont)
             {
@@ -400,10 +441,10 @@ namespace NPOI.Excel2PDF
                 var color = hssfFont.GetHSSFColor(workbook);
 
                 if (color != null)
-                    return color.GetHexString();
+                    return Color.FromRGB(color.RGB[0], color.RGB[1], color.RGB[2]);
             }
 
-            return "#000000";
+            return Colors.Black;
         }
 
         private static bool IsMergedCell(ISheet sheet, int row, int col)
