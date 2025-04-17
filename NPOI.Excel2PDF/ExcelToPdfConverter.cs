@@ -505,7 +505,10 @@ namespace NPOI.Excel2PDF
             double tableWidth = 0;
             int lastColumn = sheet.GetMaxColumnCount();
             for (int colIdx = 0; colIdx <= lastColumn; colIdx++)
-                tableWidth += sheet.GetColumnWidthInPixels(colIdx);
+            {
+                if (!sheet.IsColumnHidden(colIdx))
+                    tableWidth += sheet.GetColumnWidthInPixels(colIdx);
+            }
 
             float widthScale = pageWidth / (float)tableWidth;
             float finalScale = Math.Min(widthScale, 1.0f);
